@@ -56,7 +56,8 @@ class ItemListScreen extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (context) => AddItemScreen(list: list)),
           );
-          // Trigger UI update after returning from AddItemScreen
+          // Ensure that the list is saved after returning from AddItemScreen
+          Provider.of<ItemListProvider>(context, listen: false).saveLists();
         },
         child: Icon(Icons.add),
       ),
@@ -69,6 +70,7 @@ class ItemListScreen extends StatelessWidget {
               Provider.of<ItemListProvider>(context, listen: false)
                   .markItemPicked(list, randomItem);
               _showPickedItemDialog(context, randomItem);
+              Provider.of<ItemListProvider>(context, listen: false).saveLists();
             }
           },
           child: Text('Shuffle and Pick'),
@@ -129,6 +131,7 @@ class ItemListScreen extends StatelessWidget {
                       .lists
                       .firstWhere((l) => l.title == list.title)
                       .title = controller.text;
+                  Provider.of<ItemListProvider>(context, listen: false).saveLists();
                   Navigator.pop(context);
                 }
               },
@@ -157,6 +160,7 @@ class ItemListScreen extends StatelessWidget {
                 Provider.of<ItemListProvider>(context, listen: false)
                     .lists
                     .removeWhere((l) => l.title == list.title);
+                Provider.of<ItemListProvider>(context, listen: false).saveLists();
                 Navigator.pop(context);
                 Navigator.pop(context); // Return to the previous screen
               },

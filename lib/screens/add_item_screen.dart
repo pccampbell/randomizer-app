@@ -54,8 +54,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     imageUrl: _imageUrlController.text,
                   );
 
+                  // Add the new item to the list and save the updated list
                   Provider.of<ItemListProvider>(context, listen: false)
                       .addItemToList(widget.list, newItem);
+
+                  // Save the updated list to Hive
+                  Provider.of<ItemListProvider>(context, listen: false).saveLists();
 
                   Navigator.pop(context);
                 } else {

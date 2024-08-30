@@ -1,7 +1,14 @@
+import 'package:hive/hive.dart';
 import 'item.dart';
 
+part 'item_list.g.dart';  // This part directive is necessary for Hive code generation
+
+@HiveType(typeId: 1)  // Ensure the typeId is unique across all your Hive types
 class ItemList {
+  @HiveField(0)
   String title;
+
+  @HiveField(1)
   final List<Item> items;
 
   ItemList({required this.title, List<Item>? items})

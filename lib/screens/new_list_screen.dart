@@ -28,8 +28,11 @@ class _NewListScreenState extends State<NewListScreen> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
+                // Create a new ItemList with the entered title
                 final newList = ItemList(title: _titleController.text);
+                // Add the new list to the provider (and save it to Hive)
                 Provider.of<ItemListProvider>(context, listen: false).addList(newList);
+                // Navigate back to the previous screen
                 Navigator.pop(context);
               },
               child: Text('Create List'),
@@ -38,5 +41,11 @@ class _NewListScreenState extends State<NewListScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();  // Dispose of the controller when done
+    super.dispose();
   }
 }
