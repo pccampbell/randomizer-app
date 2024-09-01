@@ -45,47 +45,26 @@ class _AddItemScreenState extends State<AddItemScreen> {
             SizedBox(height: 32.0),
             ElevatedButton(
               onPressed: () {
-                if (_nameController.text.isNotEmpty &&
-                    _urlController.text.isNotEmpty &&
-                    _imageUrlController.text.isNotEmpty) {
-                  final newItem = Item(
-                    name: _nameController.text,
-                    url: _urlController.text,
-                    imageUrl: _imageUrlController.text,
-                  );
+                final newItem = Item(
+                  name: _nameController.text,
+                  url: _urlController.text,
+                  imageUrl: _imageUrlController.text,
+                );
 
-                  // Add the new item to the list and save the updated list
-                  Provider.of<ItemListProvider>(context, listen: false)
-                      .addItemToList(widget.list, newItem);
+                // Add the new item to the list and save the updated list
+                Provider.of<ItemListProvider>(context, listen: false)
+                    .addItemToList(widget.list, newItem);
 
-                  // Save the updated list to Hive
-                  Provider.of<ItemListProvider>(context, listen: false).saveLists();
+                // Save the updated list to Hive
+                Provider.of<ItemListProvider>(context, listen: false)
+                    .saveLists();
 
-                  Navigator.pop(context);
-                } else {
-                  _showValidationError();
-                }
+                Navigator.pop(context);
               },
               child: Text('Add Item'),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showValidationError() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Validation Error'),
-        content: Text('Please fill in all fields before adding the item.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
       ),
     );
   }

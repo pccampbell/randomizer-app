@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/item_list.dart';
-import 'models/item.dart';  
+import 'models/item.dart';
 import 'screens/home_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,23 +33,27 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
           appBarTheme: AppBarTheme(
-            backgroundColor: Colors.blueGrey,  // Apply the primary color to the app bar
-            foregroundColor: Colors.white,  // Text/icon color in the app bar
+            backgroundColor:
+                Colors.blueGrey, // Apply the primary color to the app bar
+            foregroundColor: Colors.white, // Text/icon color in the app bar
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueGrey,  // Apply the primary color to elevated buttons
-              foregroundColor: Colors.white,  // Text color on the buttons
+              backgroundColor: Colors
+                  .blueGrey, // Apply the primary color to elevated buttons
+              foregroundColor: Colors.white, // Text color on the buttons
             ),
           ),
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(
-              backgroundColor: Colors.blueGrey,  // Apply the primary color to text buttons
+              backgroundColor:
+                  Colors.blueGrey, // Apply the primary color to text buttons
             ),
           ),
           outlinedButtonTheme: OutlinedButtonThemeData(
             style: OutlinedButton.styleFrom(
-              backgroundColor: Colors.blueGrey,  // Apply the primary color to outlined buttons
+              backgroundColor: Colors
+                  .blueGrey, // Apply the primary color to outlined buttons
             ),
           ),
           visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -83,6 +86,15 @@ class ItemListProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void updateItem(
+      Item item, String newName, String newUrl, String newImageUrl) {
+    item.name = newName;
+    item.url = newUrl;
+    item.imageUrl = newImageUrl;
+    saveLists(); // Save the updated state to Hive or other storage
+    notifyListeners(); // Notify listeners to update the UI
+  }
+
   void markItemPicked(ItemList list, Item item) {
     final index = list.items.indexOf(item);
     if (index != -1) {
@@ -90,6 +102,12 @@ class ItemListProvider with ChangeNotifier {
       saveLists();
       notifyListeners();
     }
+  }
+
+  void resetPickedStatus(ItemList list) {
+    list.resetAllItems(); // Call the method to reset picked status of all items
+    saveLists(); // Save the updated state to Hive or other storage
+    notifyListeners(); // Notify listeners to update the UI
   }
 
   void deleteList(ItemList list) {

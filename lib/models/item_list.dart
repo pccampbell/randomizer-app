@@ -14,6 +14,21 @@ class ItemList {
   ItemList({required this.title, List<Item>? items})
       : items = items ?? [];  // Initialize with an empty mutable list if no list is provided
 
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'items': items.map((item) => item.toJson()).toList(),
+    };
+  }
+
+  // Implement fromJson to load data back
+  factory ItemList.fromJson(Map<String, dynamic> json) {
+    return ItemList(
+      title: json['title'],
+      items: (json['items'] as List).map((item) => Item.fromJson(item)).toList(),
+    );
+  }
+
   // Method to add an item to the list
   void addItem(Item item) {
     items.add(item);
