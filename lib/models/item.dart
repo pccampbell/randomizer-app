@@ -14,12 +14,16 @@ class Item {
   String imageUrl;
 
   @HiveField(3)
+  String details;
+
+  @HiveField(4)
   bool isPicked;
 
   Item({
     required this.name,
     this.url = '',
     this.imageUrl = '',
+    this.details = '',
     this.isPicked = false,
   });
 

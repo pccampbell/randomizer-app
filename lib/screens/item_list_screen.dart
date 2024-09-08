@@ -6,6 +6,7 @@ import '../models/item_list.dart';
 import 'add_item_screen.dart';
 import 'package:randomizer_app/main.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:lottie/lottie.dart';
 
 class ItemListScreen extends StatelessWidget {
   final ItemList list;
@@ -35,19 +36,41 @@ class ItemListScreen extends StatelessWidget {
             itemCount: updatedList.items.length,
             itemBuilder: (context, index) {
               final item = updatedList.items[index];
-              return ListTile(
-                leading: CachedNetworkImage(
-                  imageUrl: item.imageUrl,
-                  placeholder: (context, url) => CircularProgressIndicator(),
-                  errorWidget: (context, url, error) =>
-                      Icon(Icons.insert_photo),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 5.0), // Add padding around each card
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  color: item.isPicked? Colors.grey[500] : Colors.grey[200],
+                  elevation: 4, // Adds a shadow to the card
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                        10), // Rounds the corners of the card
+                  ),
+                  child: ListTile(
+                    leading: item.imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: item.imageUrl,
+                            placeholder: (context, url) =>
+                                CircularProgressIndicator(),
+                            errorWidget: (context, url, error) =>
+                                Icon(Icons.insert_photo),
+                          )
+                        : SizedBox(width: 100), 
+                    title: Text(
+                      item.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24.0,
+                      ),
+                    ),
+                    onTap: () {
+                      _showViewItemDialog(
+                          context, item); // Shows the item details in a dialog
+                    },
+                  ),
                 ),
-                title: Text(item.name),
-                subtitle: Text(item.url),
-                tileColor: item.isPicked ? Colors.grey[500] : Colors.white,
-                onTap: () {
-                  _showViewItemDialog(context, item);
-                },
               );
             },
           );
@@ -72,7 +95,7 @@ class ItemListScreen extends StatelessWidget {
             if (randomItem != null) {
               Provider.of<ItemListProvider>(context, listen: false)
                   .markItemPicked(list, randomItem);
-              _showPickedItemDialog(context, randomItem);
+              _playLottieAndShowPickedItem(context, randomItem);
               Provider.of<ItemListProvider>(context, listen: false).saveLists();
             }
           },
@@ -82,13 +105,15 @@ class ItemListScreen extends StatelessWidget {
     );
   }
 
-  void _showViewItemDialog(BuildContext context, Item item) {
+  void _showEditItemDialog(BuildContext context, Item item) {
     final TextEditingController nameController =
         TextEditingController(text: item.name);
     final TextEditingController urlController =
         TextEditingController(text: item.url);
     final TextEditingController imageUrlController =
         TextEditingController(text: item.imageUrl);
+    final TextEditingController detailsController =
+        TextEditingController(text: item.details);
 
     showDialog(
       context: context,
@@ -97,6 +122,7 @@ class ItemListScreen extends StatelessWidget {
           title: Text('Edit Item'),
           content: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min, // Prevent overflow issues
               children: [
                 CachedNetworkImage(
                   imageUrl: item.imageUrl,
@@ -110,59 +136,172 @@ class ItemListScreen extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: 'Item Name',
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blueGrey[400] ?? Colors.blueGrey, width: 2.0),
+                      borderSide: BorderSide(
+                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                          width: 2.0),
                     ),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 3.0),
                     ),
-                    ),
+                  ),
                 ),
                 TextField(
                   controller: urlController,
                   decoration: InputDecoration(
                     labelText: 'Item URL',
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blueGrey[400] ?? Colors.blueGrey, width: 2.0),
+                      borderSide: BorderSide(
+                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                          width: 2.0),
                     ),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 3.0),
                     ),
-                    ),
+                  ),
                 ),
                 TextField(
                   controller: imageUrlController,
                   decoration: InputDecoration(
                     labelText: 'Image URL',
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blueGrey[400] ?? Colors.blueGrey, width: 2.0),
+                      borderSide: BorderSide(
+                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                          width: 2.0),
                     ),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue, width: 3.0),
                     ),
+                  ),
+                ),
+                TextField(
+                  controller: detailsController,
+                  maxLines: null, // Allow multiple lines for details
+                  minLines: 3, // Set minimum number of lines
+                  decoration: InputDecoration(
+                    labelText: 'Item Details',
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                          width: 2.0),
                     ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue, width: 3.0),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
           actions: [
+            // Delete Button
+            TextButton(
+              onPressed: () {
+                _showDeleteConfirmationDialog(context, item);
+              },
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+            // Cancel Button
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text('Cancel', style: TextStyle(color: Colors.white)),
             ),
+            // Save Button
             TextButton(
               onPressed: () {
+                // Update item with new values
                 Provider.of<ItemListProvider>(context, listen: false)
                     .updateItem(
                   item,
                   nameController.text,
                   urlController.text,
                   imageUrlController.text,
+                  detailsController.text, // Update the details field
                 );
                 Navigator.pop(context); // Close the dialog
               },
               child: Text('Save', style: TextStyle(color: Colors.white)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  // Show the delete confirmation dialog
+  void _showDeleteConfirmationDialog(BuildContext context, Item item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete this item?'),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(context), // Close dialog without deleting
+              child: Text('Cancel', style: TextStyle(color: Colors.white)),
+            ),
+            TextButton(
+              onPressed: () {
+                Provider.of<ItemListProvider>(context, listen: false)
+                    .deleteItem(item); // Delete the item
+                Navigator.pop(context); // Close the confirmation dialog
+                Navigator.pop(context); // Close the edit dialog
+              },
+              child: Text('Confirm', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showViewItemDialog(BuildContext context, Item item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Center(
+            child: Text(
+              item.name,
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CachedNetworkImage(
+                imageUrl: item.imageUrl,
+                placeholder: (context, url) => CircularProgressIndicator(),
+                errorWidget: (context, url, error) => Icon(Icons.insert_photo),
+                // height: 150.0, // Larger image in the info dialog
+                // width: 2000.0,
+                fit: BoxFit.cover,
+              ),
+              SizedBox(height: 10),
+              if (item.url.isNotEmpty) // Show button only if the item has a URL
+                ElevatedButton(
+                  onPressed: () {
+                    _launchURL(item.url); // Open the URL
+                  },
+                  child: Text('Open URL'),
+                ),
+              SizedBox(height: 10),
+              if (item.details.isNotEmpty)  // Show details if available
+                Text(
+                  item.details,
+                  style: TextStyle(fontSize: 16.0),
+                ),
+              SizedBox(height: 25),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close the dialog
+                  _showEditItemDialog(context, item); // Show the edit screen
+                },
+                child: Text('Edit'),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -302,7 +441,7 @@ class ItemListScreen extends StatelessWidget {
                         .infinity, // Let the image take the available width
                     child: CachedNetworkImage(
                       imageUrl: item.imageUrl,
-                      fit: BoxFit.cover, // Make sure the image covers the box
+                      // fit: BoxFit.cover, // Make sure the image covers the box
                       placeholder: (context, url) =>
                           CircularProgressIndicator(),
                       errorWidget: (context, url, error) => Icon(Icons.error),
@@ -318,11 +457,19 @@ class ItemListScreen extends StatelessWidget {
                       _launchURL(formattedUrl);
                     },
                     child: Text(
-                      'Item Link',
-                      style: TextStyle(color: Colors.blue, fontSize: 16.0),
+                      'Open Item Link',
+                      style: TextStyle(color: Colors.white, fontSize: 16.0),
                     ),
                   ),
                   SizedBox(height: 10),
+                  
+                ],
+              ),
+              actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center, // Align buttons at the center
+                children: [
+                  // Skip Button
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
@@ -338,12 +485,13 @@ class ItemListScreen extends StatelessWidget {
                     },
                     child: Text('Skip'),
                   ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Close', style: TextStyle(color: Colors.white)),
+                  SizedBox(width: 80), // Space between the buttons
+                  // Close Button
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Close', style: TextStyle(color: Colors.white)),
+                  ),
+                  ],
                 ),
               ],
             );
@@ -352,6 +500,50 @@ class ItemListScreen extends StatelessWidget {
       },
     );
   }
+
+// Function to play the Lottie animation before showing the picked item
+  void _playLottieAndShowPickedItem(BuildContext context, Item item) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Center(
+          child: Lottie.asset(
+            'assets/atom-loader.json', // First Lottie animation
+            repeat: false, // Play only once
+            onLoaded: (composition) {
+              // Delay for the first animation's duration
+              Future.delayed(composition.duration, () {
+                Navigator.pop(context); // Close the first Lottie dialog
+
+                // Show second Lottie animation
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return Center(
+                      child: Lottie.asset(
+                        'assets/celebration.json', // Second Lottie animation
+                        repeat: false, // Play only once
+                        onLoaded: (composition) {
+                          // Delay for the second animation's duration
+                          Future.delayed(composition.duration, () {
+                            Navigator.pop(
+                                context); // Close the second Lottie dialog
+                            _showPickedItemDialog(
+                                context, item); // Show the picked item dialog
+                          });
+                        },
+                      ),
+                    );
+                  },
+                );
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
 
   void _launchURL(String url) async {
     try {

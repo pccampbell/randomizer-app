@@ -17,6 +17,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _nameController = TextEditingController();
   final _urlController = TextEditingController();
   final _imageUrlController = TextEditingController();
+  final _detailsController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -24,46 +25,60 @@ class _AddItemScreenState extends State<AddItemScreen> {
       appBar: AppBar(
         title: Text('Add New Item'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Item Name'),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _urlController,
-              decoration: InputDecoration(labelText: 'Item URL'),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _imageUrlController,
-              decoration: InputDecoration(labelText: 'Image URL'),
-            ),
-            SizedBox(height: 32.0),
-            ElevatedButton(
-              onPressed: () {
-                final newItem = Item(
-                  name: _nameController.text,
-                  url: _urlController.text,
-                  imageUrl: _imageUrlController.text,
-                );
+      body: SingleChildScrollView(
+        // Enable scrolling if content overflows
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // Align content to the start
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Item Name'),
+              ),
+              SizedBox(height: 16.0),
+              TextField(
+                controller: _urlController,
+                decoration: InputDecoration(labelText: 'Item URL'),
+              ),
+              SizedBox(height: 16.0),
+              TextField(
+                controller: _imageUrlController,
+                decoration: InputDecoration(labelText: 'Image URL'),
+              ),
+              SizedBox(height: 16.0),
+              TextField(
+                controller: _detailsController,
+                decoration: InputDecoration(labelText: 'Item Details'),
+                maxLines: null, // Allow multiline input
+              ),
+              SizedBox(height: 32.0),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    final newItem = Item(
+                      name: _nameController.text,
+                      url: _urlController.text,
+                      imageUrl: _imageUrlController.text,
+                      details: _detailsController.text, // Save the details as well
+                    );
 
-                // Add the new item to the list and save the updated list
-                Provider.of<ItemListProvider>(context, listen: false)
-                    .addItemToList(widget.list, newItem);
+                    // Add the new item to the list and save the updated list
+                    Provider.of<ItemListProvider>(context, listen: false)
+                        .addItemToList(widget.list, newItem);
 
-                // Save the updated list to Hive
-                Provider.of<ItemListProvider>(context, listen: false)
-                    .saveLists();
+                    // Save the updated list to Hive
+                    Provider.of<ItemListProvider>(context, listen: false)
+                        .saveLists();
 
-                Navigator.pop(context);
-              },
-              child: Text('Add Item'),
-            ),
-          ],
+                    Navigator.pop(context);
+                  },
+                  child: Text('Add Item'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -74,6 +89,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _nameController.dispose();
     _urlController.dispose();
     _imageUrlController.dispose();
+    _detailsController.dispose();
     super.dispose();
   }
 }

@@ -87,12 +87,25 @@ class ItemListProvider with ChangeNotifier {
   }
 
   void updateItem(
-      Item item, String newName, String newUrl, String newImageUrl) {
+      Item item, String newName, String newUrl, String newImageUrl,
+      String newDetails) {
     item.name = newName;
     item.url = newUrl;
     item.imageUrl = newImageUrl;
+    item.details = newDetails;
     saveLists(); // Save the updated state to Hive or other storage
     notifyListeners(); // Notify listeners to update the UI
+  }
+
+  void deleteItem(Item item) {
+    for (var list in _lists) {
+      if (list.items.contains(item)) {
+        list.items.remove(item); // Remove item from the list
+        saveLists(); // Save the updated list to Hive
+        notifyListeners(); // Notify listeners to update UI
+        break;
+      }
+    }
   }
 
   void markItemPicked(ItemList list, Item item) {
