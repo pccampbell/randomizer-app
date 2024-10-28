@@ -17,21 +17,28 @@ class Item {
   String details;
 
   @HiveField(4)
+  List<String> tags;
+
+  @HiveField(5)
   bool isPicked;
 
-  Item({
+    Item({
     required this.name,
     this.url = '',
     this.imageUrl = '',
     this.details = '',
+    this.tags = const <String>[], 
     this.isPicked = false,
   });
 
+  // Update toJson and fromJson methods to include tags
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'url': url,
       'imageUrl': imageUrl,
+      'details': details,
+      'tags': tags,
       'isPicked': isPicked,
     };
   }
@@ -41,6 +48,8 @@ class Item {
       name: json['name'],
       url: json['url'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
+      details: json['details'] ?? '',
+      tags: List<String>.from(json['tags'] ?? []), // Parse tags as List<String>
       isPicked: json['isPicked'] ?? false,
     );
   }

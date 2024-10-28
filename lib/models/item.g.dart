@@ -20,14 +20,16 @@ class ItemAdapter extends TypeAdapter<Item> {
       name: fields[0] as String,
       url: fields[1] as String,
       imageUrl: fields[2] as String,
-      isPicked: fields[3] as bool,
+      details: fields[3] as String,
+      tags: (fields[4] as List).cast<String>(),
+      isPicked: fields[5] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Item obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -35,6 +37,10 @@ class ItemAdapter extends TypeAdapter<Item> {
       ..writeByte(2)
       ..write(obj.imageUrl)
       ..writeByte(3)
+      ..write(obj.details)
+      ..writeByte(4)
+      ..write(obj.tags)
+      ..writeByte(5)
       ..write(obj.isPicked);
   }
 

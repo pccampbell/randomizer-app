@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/item_list.dart';
@@ -5,6 +6,8 @@ import 'models/item.dart';
 import 'screens/home_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'dart:convert';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +17,8 @@ void main() async {
   await Hive.initFlutter(appDocumentDir.path);
 
   // Registering adapters for custom objects
-  Hive.registerAdapter(ItemListAdapter());
   Hive.registerAdapter(ItemAdapter());
+  Hive.registerAdapter(ItemListAdapter());
 
   // Open Hive box
   await Hive.openBox('itemBox');
@@ -32,7 +35,7 @@ class MyApp extends StatelessWidget {
         title: 'Item Randomizer',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
-          appBarTheme: AppBarTheme(
+          appBarTheme: const AppBarTheme(
             backgroundColor:
                 Colors.blueGrey, // Apply the primary color to the app bar
             foregroundColor: Colors.white, // Text/icon color in the app bar
@@ -88,11 +91,12 @@ class ItemListProvider with ChangeNotifier {
 
   void updateItem(
       Item item, String newName, String newUrl, String newImageUrl,
-      String newDetails) {
+      String newDetails, List<String> newTags) {
     item.name = newName;
     item.url = newUrl;
     item.imageUrl = newImageUrl;
     item.details = newDetails;
+    item.tags = newTags;
     saveLists(); // Save the updated state to Hive or other storage
     notifyListeners(); // Notify listeners to update the UI
   }
@@ -142,5 +146,35 @@ class ItemListProvider with ChangeNotifier {
 
   void saveLists() {
     box.put('lists', _lists);
+  }
+
+  Future<void> exportData(String path) async {
+    // Convert the lists to JSON
+    final data = _lists.map((itemList) => itemList.toJson()).toList();
+    final jsonData = jsonEncode(data);
+
+    // Save JSON to the specified path
+    final file = File(path);
+    await file.writeAsString(jsonData);
+  }
+
+  Future<void> importData(String path) async {
+    // Read JSON data from the specified path
+    final file = File(path);
+    final jsonData = await file.readAsString();
+    final List<dynamic> data = jsonDecode(jsonData);
+
+    // Convert JSON to List<ItemList>
+    List<ItemList> itemLists = [];
+    for (var itemListJson in data) {
+      if (itemListJson is Map<String, dynamic>) {
+        itemLists.add(ItemList.fromJson(itemListJson));
+      }
+    }
+
+    // Save the imported lists and update UI
+    await box.put('lists', itemLists);
+    await loadLists();
+    notifyListeners();
   }
 }

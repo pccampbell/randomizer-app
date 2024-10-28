@@ -23,7 +23,13 @@ class _NewListScreenState extends State<NewListScreen> {
           children: [
             TextField(
               controller: _titleController,
-              decoration: InputDecoration(labelText: 'List Title'),
+              decoration: const InputDecoration(
+                labelText: 'List Title',
+                enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(
+                    color: Colors.grey), // Default color for underline
+                ),
+              ),
             ),
             SizedBox(height: 20),
             ElevatedButton(

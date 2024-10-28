@@ -18,6 +18,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _urlController = TextEditingController();
   final _imageUrlController = TextEditingController();
   final _detailsController = TextEditingController();
+  final _newTagController = TextEditingController();
+
+  List<String> _tags = [];
 
   @override
   Widget build(BuildContext context) {
@@ -26,32 +29,88 @@ class _AddItemScreenState extends State<AddItemScreen> {
         title: Text('Add New Item'),
       ),
       body: SingleChildScrollView(
-        // Enable scrolling if content overflows
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start, // Align content to the start
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Item Name'),
+                decoration: const InputDecoration(
+                  labelText: 'Item Name',
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                        color: Colors.grey), // Default color for underline
+                  ),
+                ),
               ),
               SizedBox(height: 16.0),
               TextField(
                 controller: _urlController,
-                decoration: InputDecoration(labelText: 'Item URL'),
+                decoration: const InputDecoration(
+                  labelText: 'Item URL',
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                ),
               ),
               SizedBox(height: 16.0),
               TextField(
                 controller: _imageUrlController,
-                decoration: InputDecoration(labelText: 'Image URL'),
+                decoration: const InputDecoration(
+                  labelText: 'Image URL',
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                ),
               ),
               SizedBox(height: 16.0),
               TextField(
                 controller: _detailsController,
-                decoration: InputDecoration(labelText: 'Item Details'),
+                decoration: const InputDecoration(
+                  labelText: 'Item Details',
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                ),
                 maxLines: null, // Allow multiline input
+              ),
+              SizedBox(height: 16.0),
+              // Tag input and display
+              TextField(
+                controller: _newTagController,
+                decoration: InputDecoration(
+                  labelText: 'Add a Tag',
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.add),
+                    onPressed: () {
+                      if (_newTagController.text.isNotEmpty &&
+                          !_tags.contains(_newTagController.text)) {
+                        setState(() {
+                          _tags.add(_newTagController.text);
+                        });
+                        _newTagController.clear();
+                      }
+                    },
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                ),
+              ),
+              SizedBox(height: 10),
+              Wrap(
+                spacing: 6.0,
+                children: _tags.map((tag) {
+                  return Chip(
+                    label: Text(tag),
+                    onDeleted: () {
+                      setState(() {
+                        _tags.remove(tag);
+                      });
+                    },
+                  );
+                }).toList(),
               ),
               SizedBox(height: 32.0),
               Center(
@@ -61,14 +120,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       name: _nameController.text,
                       url: _urlController.text,
                       imageUrl: _imageUrlController.text,
-                      details: _detailsController.text, // Save the details as well
+                      details: _detailsController.text,
+                      tags: _tags,
                     );
 
-                    // Add the new item to the list and save the updated list
                     Provider.of<ItemListProvider>(context, listen: false)
                         .addItemToList(widget.list, newItem);
 
-                    // Save the updated list to Hive
                     Provider.of<ItemListProvider>(context, listen: false)
                         .saveLists();
 
@@ -90,6 +148,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _urlController.dispose();
     _imageUrlController.dispose();
     _detailsController.dispose();
+    _newTagController.dispose();
     super.dispose();
   }
 }

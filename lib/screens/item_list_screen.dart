@@ -114,6 +114,9 @@ class ItemListScreen extends StatelessWidget {
         TextEditingController(text: item.imageUrl);
     final TextEditingController detailsController =
         TextEditingController(text: item.details);
+    final TextEditingController newTagController = TextEditingController();
+
+    List<String> tags = List.from(item.tags);
 
     showDialog(
       context: context,
@@ -209,13 +212,14 @@ class ItemListScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 // Update item with new values
-                Provider.of<ItemListProvider>(context, listen: false)
-                    .updateItem(
+                Provider.of<ItemListProvider>(context, listen: false).updateItem(
                   item,
                   nameController.text,
                   urlController.text,
                   imageUrlController.text,
-                  detailsController.text, // Update the details field
+                  detailsController.text, 
+                  tags,
+                  // Update the details field
                 );
                 Navigator.pop(context); // Close the dialog
               },
@@ -387,24 +391,23 @@ class ItemListScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Delete List'),
-          content: Text('Are you sure you want to delete this list?'),
+          title: const Text('Delete List'),
+          content: const Text('Are you sure you want to delete this list?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
               onPressed: () {
+                // Delete the list
                 Provider.of<ItemListProvider>(context, listen: false)
-                    .lists
-                    .removeWhere((l) => l.title == list.title);
-                Provider.of<ItemListProvider>(context, listen: false)
-                    .saveLists();
+                    .deleteList(list); // Use the deleteList method // Notify the UI to refresh
+
                 Navigator.pop(context);
                 Navigator.pop(context); // Return to the previous screen
               },
-              child: Text('Delete'),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -508,34 +511,14 @@ class ItemListScreen extends StatelessWidget {
       builder: (context) {
         return Center(
           child: Lottie.asset(
-            'assets/atom-loader.json', // First Lottie animation
+            'assets/celebration.json', // Single Lottie animation
             repeat: false, // Play only once
             onLoaded: (composition) {
-              // Delay for the first animation's duration
+              // Delay for the animation's duration
               Future.delayed(composition.duration, () {
-                Navigator.pop(context); // Close the first Lottie dialog
-
-                // Show second Lottie animation
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return Center(
-                      child: Lottie.asset(
-                        'assets/celebration.json', // Second Lottie animation
-                        repeat: false, // Play only once
-                        onLoaded: (composition) {
-                          // Delay for the second animation's duration
-                          Future.delayed(composition.duration, () {
-                            Navigator.pop(
-                                context); // Close the second Lottie dialog
-                            _showPickedItemDialog(
-                                context, item); // Show the picked item dialog
-                          });
-                        },
-                      ),
-                    );
-                  },
-                );
+                Navigator.pop(context); // Close the Lottie dialog
+                _showPickedItemDialog(
+                    context, item); // Show the picked item dialog
               });
             },
           ),
@@ -543,6 +526,50 @@ class ItemListScreen extends StatelessWidget {
       },
     );
   }
+
+
+  // Play two Lottie animations in sequence
+  // void _playLottieAndShowPickedItem(BuildContext context, Item item) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       return Center(
+  //         child: Lottie.asset(
+  //           'assets/atom-loader.json', // First Lottie animation
+  //           repeat: false, // Play only once
+  //           onLoaded: (composition) {
+  //             // Delay for the first animation's duration
+  //             Future.delayed(composition.duration, () {
+  //               Navigator.pop(context); // Close the first Lottie dialog
+
+  //               // Show second Lottie animation
+  //               showDialog(
+  //                 context: context,
+  //                 builder: (context) {
+  //                   return Center(
+  //                     child: Lottie.asset(
+  //                       'assets/celebration.json', // Second Lottie animation
+  //                       repeat: false, // Play only once
+  //                       onLoaded: (composition) {
+  //                         // Delay for the second animation's duration
+  //                         Future.delayed(composition.duration, () {
+  //                           Navigator.pop(
+  //                               context); // Close the second Lottie dialog
+  //                           _showPickedItemDialog(
+  //                               context, item); // Show the picked item dialog
+  //                         });
+  //                       },
+  //                     ),
+  //                   );
+  //                 },
+  //               );
+  //             });
+  //           },
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
 
   void _launchURL(String url) async {

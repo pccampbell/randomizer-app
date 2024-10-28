@@ -11,6 +11,8 @@ import '../models/item_list.dart';
 import 'package:randomizer_app/main.dart';
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     // Ensure that the provider has access to the Hive data
@@ -19,9 +21,9 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 70.0,
-        title: Text(
+        title: const Text(
           'Your Lists',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 40.0,
             fontWeight: FontWeight.bold,
           ),
@@ -30,19 +32,18 @@ class HomeScreen extends StatelessWidget {
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'export') {
-                // _exportData(context);
-                print('Exporting data');
+                _exportData(context);
               } else if (value == 'import') {
-                print('Importing data');
+                _importData(context);
               }
             },
             itemBuilder: (BuildContext context) {
               return [
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'export',
                   child: Text('Export Data'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'import',
                   child: Text('Import Data'),
                 ),
@@ -55,7 +56,7 @@ class HomeScreen extends StatelessWidget {
         future: itemListProvider.loadLists(), // Load lists from Hive
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
+            return const Center(
                 child: CircularProgressIndicator()); // Loading indicator
           } else if (snapshot.hasError) {
             return Center(child: Text('Error loading lists')); // Handle errors
@@ -114,21 +115,23 @@ class HomeScreen extends StatelessWidget {
   // Export data to a file
   Future<void> _exportData(BuildContext context) async {
     try {
-      final box = await Hive.openBox('itemBox');
-      final data = box.values
-          .map((itemList) => (itemList as ItemList).toJson())
-          .toList();
-      final jsonData = jsonEncode(data);
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
-      final directory = await getExternalStorageDirectory();
-      final path = '${directory!.path}/randomizer_data.json';
-      final file = File(path);
-      await file.writeAsString(jsonData);
+      if (selectedDirectory != null) {
+        final path = '$selectedDirectory/randomizer_data.json';
+        await Provider.of<ItemListProvider>(context, listen: false)
+            .exportData(path);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Data exported to $path')),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Data exported successfully to $path')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export cancelled by user')),
+        );
+      }
     } catch (e) {
+      print("Export error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to export data: $e')),
       );
@@ -137,31 +140,29 @@ class HomeScreen extends StatelessWidget {
 
   // Import data from a file
   Future<void> _importData(BuildContext context) async {
-    try {
-      final result = await FilePicker.platform
-          .pickFiles(type: FileType.custom, allowedExtensions: ['json']);
-      if (result != null) {
-        final file = File(result.files.single.path!);
-        final jsonData = await file.readAsString();
-        final List<dynamic> data = jsonDecode(jsonData);
+  try {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
 
-        final box = await Hive.openBox('itemLists');
-        await box.clear();
+    if (result != null) {
+      final path = result.files.single.path!;
+      await Provider.of<ItemListProvider>(context, listen: false).importData(path);
 
-        for (var itemListJson in data) {
-          final itemList = ItemList.fromJson(itemListJson);
-          await box.add(itemList);
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Data imported successfully')),
-        );
-      }
-    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to import data: $e')),
+        SnackBar(content: Text('Data imported successfully')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Import cancelled by user')),
       );
     }
+  } catch (e) {
+    print("Import error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to import data: $e')),
+    );
   }
-
+}
 }
