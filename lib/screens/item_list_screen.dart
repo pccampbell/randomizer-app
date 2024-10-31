@@ -42,7 +42,7 @@ class ItemListScreen extends StatelessWidget {
                     vertical: 5.0), // Add padding around each card
                 child: Card(
                   margin: EdgeInsets.zero,
-                  color: item.isPicked? Colors.grey[500] : Colors.grey[200],
+                  color: item.isPicked ? Colors.grey[500] : Colors.grey[200],
                   elevation: 4, // Adds a shadow to the card
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(
@@ -57,7 +57,7 @@ class ItemListScreen extends StatelessWidget {
                             errorWidget: (context, url, error) =>
                                 Icon(Icons.insert_photo),
                           )
-                        : SizedBox(width: 100), 
+                        : SizedBox(width: 100),
                     title: Text(
                       item.name,
                       style: const TextStyle(
@@ -89,20 +89,148 @@ class ItemListScreen extends StatelessWidget {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () {
-            final randomItem = list.randomPick();
-            if (randomItem != null) {
-              Provider.of<ItemListProvider>(context, listen: false)
-                  .markItemPicked(list, randomItem);
-              _playLottieAndShowPickedItem(context, randomItem);
-              Provider.of<ItemListProvider>(context, listen: false).saveLists();
-            }
-          },
-          child: Text('Shuffle and Pick'),
+        child: Row(
+          mainAxisAlignment:
+              MainAxisAlignment.spaceEvenly, // Space the buttons evenly
+          children: [
+            // Existing Shuffle and Pick button
+            ElevatedButton(
+              onPressed: () {
+                final randomItem = list.randomPick();
+                if (randomItem != null) {
+                  Provider.of<ItemListProvider>(context, listen: false)
+                      .markItemPicked(list, randomItem);
+                  _playLottieAndShowPickedItem(context, randomItem);
+                  Provider.of<ItemListProvider>(context, listen: false)
+                      .saveLists();
+                }
+              },
+              child: Text('Shuffle and Pick'),
+            ),
+            // New Filter & Pick button
+            ElevatedButton(
+              onPressed: () {
+                _showTagFilterPopup(context, list); // Opens the tag filter popup
+              },
+              child: Text('Filter & Pick'),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _showTagFilterPopup(BuildContext originalContext, ItemList list) {
+    final selectedTags = <String>{};
+    final allTags = <String, int>{};
+
+    // Collect tags from unpicked items in the list and count occurrences
+    for (var item in list.items.where((item) => !item.isPicked)) {
+      for (var tag in item.tags) {
+        allTags[tag] = (allTags[tag] ?? 0) + 1;
+      }
+    }
+
+    showDialog(
+      context: originalContext,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Select Tags to Filter'),
+              content: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 8.0, // Space between tags
+                  runSpacing: 4.0, // Space between rows of tags
+                  children: allTags.keys.map((tag) {
+                    final isSelected = selectedTags.contains(tag);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            selectedTags.remove(tag);
+                          } else {
+                            selectedTags.add(tag);
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 6.0),
+                        decoration: BoxDecoration(
+                          color:
+                              isSelected ? Colors.blue[100] : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        child: Text(
+                          '$tag (${allTags[tag]})',
+                          style: TextStyle(
+                            color: isSelected ? Colors.blue[800] : Colors.black,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child:
+                          Text('Cancel', style: TextStyle(color: Colors.white)),
+                    ),
+                    Spacer(), // Adds space between Cancel and Pick from Filtered
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close the tag filter dialog
+                        _filterAndPick(originalContext, list, selectedTags);
+                      },
+                      child: Text('Pick from Filtered',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _filterAndPick(
+      BuildContext originalContext, ItemList list, Set<String> selectedTags) {
+    // Filter items that are not already picked and match selected tags
+    final filteredItems = list.items.where((item) {
+      return !item.isPicked &&
+          item.tags.any((tag) => selectedTags.contains(tag));
+    }).toList();
+
+    if (filteredItems.isEmpty) {
+      // Show a message if no items match the selected tags
+      ScaffoldMessenger.of(originalContext).showSnackBar(
+        SnackBar(
+            content:
+                Text('No items match the selected tags or all are picked')),
+      );
+      return;
+    }
+
+    // Pick a random item from the filtered list
+    final randomItem = (filteredItems..shuffle()).first;
+
+    // Mark the item as picked
+    Provider.of<ItemListProvider>(originalContext, listen: false)
+        .markItemPicked(list, randomItem);
+    Provider.of<ItemListProvider>(originalContext, listen: false).saveLists();
+
+    // Show the Lottie animation and picked item dialog using the stable context
+    Future.delayed(Duration(milliseconds: 200), () {
+      _playLottieAndShowPickedItem(originalContext, randomItem);
+    });
   }
 
   void _showEditItemDialog(BuildContext context, Item item) {
@@ -121,79 +249,168 @@ class ItemListScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) {
+        final TextEditingController newTagController = TextEditingController();
+        List<String> tags =
+            List.from(item.tags); // Clone the tags list for editing
+
         return AlertDialog(
           title: Text('Edit Item'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // Prevent overflow issues
-              children: [
-                CachedNetworkImage(
-                  imageUrl: item.imageUrl,
-                  placeholder: (context, url) => CircularProgressIndicator(),
-                  errorWidget: (context, url, error) =>
-                      Icon(Icons.insert_photo),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: item.imageUrl,
+                      placeholder: (context, url) =>
+                          CircularProgressIndicator(),
+                      errorWidget: (context, url, error) =>
+                          Icon(Icons.insert_photo),
+                    ),
+                    SizedBox(height: 10),
+                    TextField(
+                      controller: nameController,
+                      style: TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Item Name',
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                            width: 2.0,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.blue, width: 3.0),
+                        ),
+                      ),
+                    ),
+                    TextField(
+                      controller: urlController,
+                      style: TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Item URL',
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                            width: 2.0,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.blue, width: 3.0),
+                        ),
+                      ),
+                    ),
+                    TextField(
+                      controller: imageUrlController,
+                      style: TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Image URL',
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                            width: 2.0,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.blue, width: 3.0),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.only(
+                          top: 8.0), // Adds a small gap above this field
+                      child: TextField(
+                        controller: detailsController,
+                        maxLines: 5,
+                        style: TextStyle(
+                            fontSize: 14), // Smaller font for input text
+                        decoration: InputDecoration(
+                          labelText: 'Item Details',
+                          labelStyle: TextStyle(
+                              fontSize: 16), // Fixed size for label text
+                          alignLabelWithHint: true, // Aligns label to the top
+                          filled: true,
+                          fillColor: Colors.grey[
+                              200], // Light grey background for the text field
+                          contentPadding: EdgeInsets.all(
+                              8.0), // Uniform padding inside the box
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.blueGrey[400] ?? Colors.blueGrey,
+                              width: 2.0,
+                            ),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.blue, width: 3.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    // Display tags as chips
+                    Container(
+                      width: double.infinity,
+                      alignment:
+                          Alignment.centerLeft, // Align chips to the left edge
+                      child: Wrap(
+                        alignment: WrapAlignment.start,
+                        spacing: 2.0, // Horizontal space between chips
+                        runSpacing: 1.0, // Vertical space between rows of chips
+                        children: tags.map((tag) {
+                          return Chip(
+                            label: Text(
+                              tag,
+                              style: const TextStyle(
+                                  fontSize:
+                                      13), // Smaller font for compact chip
+                            ),
+                            labelPadding: const EdgeInsets.symmetric(
+                                horizontal: 1.0), // Minimal padding around text
+                            materialTapTargetSize: MaterialTapTargetSize
+                                .shrinkWrap, // Reduce extra padding
+                            backgroundColor: Colors.grey[300],
+                            onDeleted: () {
+                              setState(() {
+                                tags.remove(tag);
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SizedBox(height: 10.0),
+                    // Tag input field with '+' button
+                    TextField(
+                      controller: newTagController,
+                      decoration: InputDecoration(
+                        labelText: 'Add a Tag',
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.add),
+                          onPressed: () {
+                            if (newTagController.text.isNotEmpty &&
+                                !tags.contains(newTagController.text)) {
+                              setState(() {
+                                tags.add(
+                                    newTagController.text); // Update tags list
+                              });
+                              newTagController.clear();
+                            }
+                          },
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 10),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Item Name',
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
-                          width: 2.0),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue, width: 3.0),
-                    ),
-                  ),
-                ),
-                TextField(
-                  controller: urlController,
-                  decoration: InputDecoration(
-                    labelText: 'Item URL',
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
-                          width: 2.0),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue, width: 3.0),
-                    ),
-                  ),
-                ),
-                TextField(
-                  controller: imageUrlController,
-                  decoration: InputDecoration(
-                    labelText: 'Image URL',
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
-                          width: 2.0),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue, width: 3.0),
-                    ),
-                  ),
-                ),
-                TextField(
-                  controller: detailsController,
-                  maxLines: null, // Allow multiple lines for details
-                  minLines: 3, // Set minimum number of lines
-                  decoration: InputDecoration(
-                    labelText: 'Item Details',
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.blueGrey[400] ?? Colors.blueGrey,
-                          width: 2.0),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue, width: 3.0),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
           actions: [
             // Delete Button
@@ -212,12 +429,13 @@ class ItemListScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 // Update item with new values
-                Provider.of<ItemListProvider>(context, listen: false).updateItem(
+                Provider.of<ItemListProvider>(context, listen: false)
+                    .updateItem(
                   item,
                   nameController.text,
                   urlController.text,
                   imageUrlController.text,
-                  detailsController.text, 
+                  detailsController.text,
                   tags,
                   // Update the details field
                 );
@@ -291,7 +509,7 @@ class ItemListScreen extends StatelessWidget {
                   child: Text('Open URL'),
                 ),
               SizedBox(height: 10),
-              if (item.details.isNotEmpty)  // Show details if available
+              if (item.details.isNotEmpty) // Show details if available
                 Text(
                   item.details,
                   style: TextStyle(fontSize: 16.0),
@@ -396,13 +614,14 @@ class ItemListScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
               onPressed: () {
                 // Delete the list
-                Provider.of<ItemListProvider>(context, listen: false)
-                    .deleteList(list); // Use the deleteList method // Notify the UI to refresh
+                Provider.of<ItemListProvider>(context, listen: false).deleteList(
+                    list); // Use the deleteList method // Notify the UI to refresh
 
                 Navigator.pop(context);
                 Navigator.pop(context); // Return to the previous screen
@@ -465,35 +684,37 @@ class ItemListScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 10),
-                  
                 ],
               ),
               actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center, // Align buttons at the center
-                children: [
-                  // Skip Button
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        item.resetPickedStatus();
-                        final newItem = list.randomPick();
-                        if (newItem != null) {
-                          Provider.of<ItemListProvider>(context, listen: false)
-                              .markItemPicked(list, newItem);
-                          Navigator.pop(context);
-                          _showPickedItemDialog(context, newItem);
-                        }
-                      });
-                    },
-                    child: Text('Skip'),
-                  ),
-                  SizedBox(width: 80), // Space between the buttons
-                  // Close Button
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('Close', style: TextStyle(color: Colors.white)),
-                  ),
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center, // Align buttons at the center
+                  children: [
+                    // Skip Button
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          item.resetPickedStatus();
+                          final newItem = list.randomPick();
+                          if (newItem != null) {
+                            Provider.of<ItemListProvider>(context,
+                                    listen: false)
+                                .markItemPicked(list, newItem);
+                            Navigator.pop(context);
+                            _showPickedItemDialog(context, newItem);
+                          }
+                        });
+                      },
+                      child: Text('Skip'),
+                    ),
+                    SizedBox(width: 80), // Space between the buttons
+                    // Close Button
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child:
+                          Text('Close', style: TextStyle(color: Colors.white)),
+                    ),
                   ],
                 ),
               ],
@@ -506,19 +727,22 @@ class ItemListScreen extends StatelessWidget {
 
 // Function to play the Lottie animation before showing the picked item
   void _playLottieAndShowPickedItem(BuildContext context, Item item) {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) {
+      barrierDismissible: false, // Prevents closing until Lottie completes
+      barrierColor: Colors.white, // Makes the entire screen white
+      pageBuilder: (context, animation, secondaryAnimation) {
         return Center(
           child: Lottie.asset(
-            'assets/celebration.json', // Single Lottie animation
+            'assets/celebration.json',
             repeat: false, // Play only once
             onLoaded: (composition) {
               // Delay for the animation's duration
               Future.delayed(composition.duration, () {
-                Navigator.pop(context); // Close the Lottie dialog
-                _showPickedItemDialog(
-                    context, item); // Show the picked item dialog
+                Navigator.pop(context); // Close the Lottie animation dialog
+                _showPickedItemDialog(context, item);
+                // _highlightPickedItemInList(
+                //     context, item); // Highlight picked item on the list screen
               });
             },
           ),
@@ -526,7 +750,6 @@ class ItemListScreen extends StatelessWidget {
       },
     );
   }
-
 
   // Play two Lottie animations in sequence
   // void _playLottieAndShowPickedItem(BuildContext context, Item item) {
@@ -570,7 +793,6 @@ class ItemListScreen extends StatelessWidget {
   //     },
   //   );
   // }
-
 
   void _launchURL(String url) async {
     try {
