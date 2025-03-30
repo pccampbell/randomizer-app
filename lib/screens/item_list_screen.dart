@@ -245,6 +245,7 @@ class ItemListScreen extends StatelessWidget {
     final TextEditingController newTagController = TextEditingController();
 
     List<String> tags = List.from(item.tags);
+    bool isPicked = item.isPicked; // Track the picked status
 
     showDialog(
       context: context,
@@ -405,6 +406,25 @@ class ItemListScreen extends StatelessWidget {
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(color: Colors.grey),
                         ),
+                      ),
+                    ),
+                    Container(
+                      child: SwitchListTile(
+                        title: Text('Picked Status'),
+                        value: isPicked,
+                        onChanged: (value) {
+                          setState(() {
+                            isPicked = value;
+                            if (isPicked) {
+                              item.markAsPicked();
+                            } else {
+                              item.resetPickedStatus();
+                            }
+                          });
+                        },
+                        activeColor: Colors.blue, // Color for the active toggle
+                        inactiveThumbColor: Colors.grey, // Color for the inactive toggle
+                        inactiveTrackColor: Colors.grey[300], // Track color for inactive state
                       ),
                     ),
                   ],
