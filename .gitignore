@@ -44,3 +44,22 @@ app.*.map.json
 /android/app/release
 
 .env
+
+# --- flutter_launcher_icons output ---
+android/app/src/main/res/mipmap*/ic_launcher*.png
+ios/Runner/Assets.xcassets/AppIcon.appiconset/*
+
+# --- flutter_native_splash output ---
+android/app/src/main/res/drawable*/launch_background.xml
+android/app/src/main/res/drawable*/splash*.png
+android/app/src/main/res/drawable*/android12splash.png
+android/app/src/main/res/values*/styles.xml
+android/app/src/main/res/drawable*/background.png
+
+ios/Runner/Assets.xcassets/LaunchImage.imageset/*
+ios/Runner/Assets.xcassets/LaunchBackground.imageset/*
+ios/Runner/Base.lproj/LaunchScreen.storyboard
+
+# --- flutter_native_splash for Web ---
+web/splash/img/*
+

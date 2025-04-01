@@ -29,6 +29,8 @@ jobs:
           echo "SEARCH_ENGINE_ID=${{ secrets.SEARCH_ENGINE_ID }}" >> .env
 
       - run: flutter pub get
+      - run: dart run flutter_launcher_icons:main
+      - run: dart run flutter_native_splash:create
       - run: flutter build apk
       - name: Upload to GDrive
         uses: adityak74/google-drive-upload-git-action@main
