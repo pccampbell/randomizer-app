@@ -7,6 +7,10 @@ import 'add_item_screen.dart';
 import 'package:randomizer_app/main.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lottie/lottie.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class ItemListScreen extends StatelessWidget {
   final ItemList list;
@@ -117,6 +121,105 @@ class ItemListScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Future<String?> _fetchImageUrl(BuildContext context, String query) async {
+    final String apiKey = dotenv.env['GOOGLE_API_KEY'] ?? ''; 
+    final String searchEngineId = dotenv.env['SEARCH_ENGINE_ID'] ?? '';
+    final String url =
+        'https://www.googleapis.com/customsearch/v1?q=${Uri.encodeComponent(query)}&cx=$searchEngineId&searchType=image&key=$apiKey';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      print('API Response: ${response.body}'); 
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final items = data['items'] as List?;
+        if (items != null && items.isNotEmpty) {
+          return items.first['link'] as String?;
+        }
+      } else if (response.statusCode == 429) {
+        print('Rate limit exceeded: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rate limit exceeded. Please try again later.')),
+        );
+      } else {
+        print('Error fetching image URL: ${response.body}');
+      }
+    } catch (e) {
+      print('Error fetching image URL: $e');
+    }
+    return null; // Return null if no image is found or an error occurs
+  }
+
+  Future<void> _fetchImagesForList(BuildContext context, ItemList list) async {
+    final provider = Provider.of<ItemListProvider>(context, listen: false);
+
+    for (var item in list.items) {
+      if (item.imageUrl.isEmpty) {
+        final imageUrl = await _fetchImageUrl(context, item.name);
+        if (imageUrl != null) {
+          provider.updateItem(
+            item,
+            item.name,
+            item.url,
+            imageUrl,
+            item.details,
+            item.tags,
+          );
+        }
+      }
+    }
+
+    provider.saveLists(); // Save the updated list
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Image URLs fetched for items without images.')),
+    );
+  }
+
+  void _clearAllImageUrls(BuildContext context, ItemList list) {
+    final provider = Provider.of<ItemListProvider>(context, listen: false);
+
+    for (var item in list.items) {
+      provider.updateItem(
+        item,
+        item.name,
+        item.url,
+        '', // Set imageUrl to empty
+        item.details,
+        item.tags,
+      );
+    }
+
+    provider.saveLists(); // Save the updated list
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('All image URLs have been cleared.')),
+    );
+  }
+
+  void _showClearImagesConfirmation(BuildContext context, ItemList list) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Clear All Images'),
+          content: Text('Are you sure you want to clear all image URLs?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Close the dialog
+              child: Text('Cancel', style: TextStyle(color: Colors.white)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+                _clearAllImageUrls(context, list); // Clear image URLs
+              },
+              child: Text('Confirm', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -568,11 +671,25 @@ class ItemListScreen extends StatelessWidget {
               leading: Icon(Icons.refresh),
               title: Text('Clear Picked Items'),
               onTap: () {
-                // Reset picked statuses and notify listeners
                 Provider.of<ItemListProvider>(context, listen: false)
                     .resetPickedStatus(list);
-
                 Navigator.pop(context); // Close the menu after resetting
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.image_search),
+              title: Text('Fetch Missing Images'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _fetchImagesForList(context, list); // Fetch image URLs
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.clear),
+              title: Text('Clear All Images'),
+              onTap: () {
+                Navigator.pop(context);
+                _showClearImagesConfirmation(context, list); // Show confirmation
               },
             ),
             ListTile(

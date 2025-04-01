@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 void main() async {
@@ -23,6 +24,15 @@ void main() async {
   // Open Hive box
   await Hive.openBox('itemBox');
 
+  try {
+    await dotenv.load(); // Try loading the environment variables
+    // Check if variables are loaded
+    print('GOOGLE_API_KEY: ${dotenv.env['GOOGLE_API_KEY']}');
+    print('SEARCH_ENGINE_ID: ${dotenv.env['SEARCH_ENGINE_ID']}');
+  } catch (e) {
+    print('Error loading .env file: $e'); // Catch any error during dotenv load
+  }
+  
   runApp(MyApp());
 }
 
