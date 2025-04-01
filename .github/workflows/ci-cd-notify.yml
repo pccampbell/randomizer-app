@@ -51,7 +51,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "New GitHub Action build result: ${{ job.status }} https://drive.google.com/drive/folders/1mA2vroEu00ELZ-y7ZjcQ2WsDJR0eA_77?usp=drive_link"
+                    "text": "New GitHub Action build result: ${{ job.status }} https://drive.google.com/drive/folders/1IvNAdBNjLittuCnT7X-IzHjtAoGupsJE?usp=drive_link"
                   }
                 }
               ]
