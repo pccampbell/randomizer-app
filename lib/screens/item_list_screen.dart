@@ -52,16 +52,25 @@ class ItemListScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(
                         10), // Rounds the corners of the card
                   ),
-                  child: ListTile(
-                    leading: item.imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: item.imageUrl,
-                            placeholder: (context, url) =>
-                                CircularProgressIndicator(),
-                            errorWidget: (context, url, error) =>
-                                Icon(Icons.insert_photo),
-                          )
-                        : SizedBox(width: 100),
+                   child: ListTile(
+                     leading: Container(
+                       width: 80, // Fixed width for all images
+                       height: 80, // Fixed height for all images
+                       child: item.imageUrl.isNotEmpty
+                           ? CachedNetworkImage(
+                               imageUrl: item.imageUrl,
+                               fit: BoxFit.cover, // Ensures image covers the entire container
+                               placeholder: (context, url) => Center(
+                                 child: CircularProgressIndicator(),
+                               ),
+                               errorWidget: (context, url, error) => Center(
+                                 child: Icon(Icons.insert_photo, size: 40),
+                               ),
+                             )
+                           : Center(
+                               child: Icon(Icons.insert_photo, size: 40),
+                             ),
+                     ),
                     title: Text(
                       item.name,
                       style: const TextStyle(

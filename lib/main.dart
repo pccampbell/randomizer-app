@@ -1,5 +1,6 @@
-import 'dart:io';
+ import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'models/item_list.dart';
 import 'models/item.dart';
@@ -71,6 +72,11 @@ class MyApp extends StatelessWidget {
           ),
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
+        builder: (context, child) {
+          return SafeArea(
+            child: child!,
+          );
+        },
         home: HomeScreen(),
       ),
     );
